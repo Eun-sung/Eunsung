@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RSI 워치</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="RSI 워치">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f4f3ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>주봉 RSI <span class="sub">(14)</span></h1>
+  <div id="status" class="status" role="status">불러오는 중…</div>
+</header>
+<main id="cards"></main>
+
+<details id="settings">
+  <summary>설정</summary>
+  <section>
+    <h2>종목과 알림 기준</h2>
+    <div id="items"></div>
+    <button type="button" id="add" class="ghost">+ 종목 추가</button>
+    <label class="field">PIN
+      <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="배포할 때 정한 APP_PIN">
+    </label>
+    <button type="button" id="save">저장</button>
+  </section>
+  <section>
+    <h2>텔레그램 알림</h2>
+    <p id="tg-state" class="hint"></p>
+    <p class="hint">텔레그램에서 내 봇에게 아무 메시지나 보낸 뒤 ‘연결’을 누르세요.</p>
+    <div class="row">
+      <button type="button" id="tg-connect">연결</button>
+      <button type="button" id="tg-test" class="ghost">테스트 알림 보내기</button>
+    </div>
+  </section>
+  <p id="msg" class="msg" role="alert"></p>
+</details>
+
+<div id="tip" class="tip" hidden></div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

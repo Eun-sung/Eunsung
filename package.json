@@ -1,0 +1,13 @@
+{
+  "name": "rsi-watch",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_USE_ENV_PROXY=1 node scripts/dev.mjs",
+    "test": "node --test",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}
