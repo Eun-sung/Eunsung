@@ -138,12 +138,13 @@ function card(s) {
       },
     }, label);
   const toTrigger = s.triggerPrice != null ? (s.triggerPrice / s.price - 1) * 100 : null;
-  const dayClass = s.dayChangePct >= 0 ? "up" : "down";
+  const dayClass = s.changePct >= 0 ? "up" : "down";
+  const sessionLabel = s.session === "pre" ? "프리마켓" : s.session === "post" ? "애프터마켓" : s.session === "regular" ? null : s.extended ? "애프터마켓 마감" : "장 마감";
 
   const node = el("article", { class: `card${below ? " below" : ""}` },
     el("div", { class: "top" },
       el("span", { class: "sym" }, s.symbol),
-      el("span", { class: "price" }, `${usd(s.price)} `, s.dayChangePct != null ? el("span", { class: dayClass }, pct(s.dayChangePct)) : null),
+      el("span", { class: "price" }, sessionLabel ? el("span", { class: "session" }, sessionLabel) : null, `${usd(s.price)} `, s.changePct != null ? el("span", { class: dayClass }, pct(s.changePct)) : null),
     ),
     el("div", { class: "hero" },
       el("span", { class: "rsi" }, s.rsi.toFixed(1)),

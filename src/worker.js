@@ -23,22 +23,50 @@ async function getConfig(env) {
   };
 }
 
-/** 한 종목의 현재 주봉 RSI와 차트용 추이를 계산한다. */
+const WEEK = 7 * 86400;
+
+function sessionOf(meta, now) {
+  const p = meta.currentTradingPeriod;
+  if (!p) return "closed";
+  if (now >= p.regular.start && now < p.regular.end) return "regular";
+  if (now >= p.pre.start && now < p.pre.end) return "pre";
+  if (now >= p.post.start && now < p.post.end) return "post";
+  return "closed";
+}
+
+/** 한 종목의 현재 주봉 RSI와 차트용 추이를 계산한다. 프리·애프터마켓 가격도 반영한다. */
 export async function analyze(symbol, threshold, withSeries) {
-  const { bars, meta } = await weekly(symbol);
+  const [{ bars, meta }, minutes] = await Promise.all([weekly(symbol), intraday(symbol)]);
+  if (!bars.length) throw new Error(`주봉 데이터 없음 (${symbol})`);
+
+  // 정규장 마지막 체결보다 새로운 5분봉이 있으면 장전/장후 가격이다.
+  const regularPrice = meta.regularMarketPrice ?? bars[bars.length - 1].c;
+  const regularTime = meta.regularMarketTime ?? 0;
+  const tailBar = minutes[minutes.length - 1];
+  const extended = !!tailBar && tailBar.t > regularTime + 60;
+  const price = extended ? tailBar.c : regularPrice;
+  const priceTime = extended ? tailBar.t : regularTime;
+
+  // 월요일 장전처럼 새 주가 시작됐는데 주봉이 아직 없으면 이번 주 봉을 만들어 붙인다.
+  const lastWeek = bars[bars.length - 1];
+  if (priceTime >= lastWeek.t + WEEK + 3600) bars.push({ t: lastWeek.t + WEEK, c: price });
+  else lastWeek.c = price;
+
   const closes = bars.map((b) => b.c);
   const states = wilderStates(closes);
   const last = closes.length - 1;
   if (last < 1 || !states[last - 1]) throw new Error(`주봉 데이터 부족 (${symbol})`);
   const prev = states[last - 1];
   const prevClose = closes[last - 1];
-  const price = closes[last];
   const out = {
     symbol,
     threshold,
     price,
-    dayChangePct: meta.regularMarketChangePercent ?? null,
-    marketTime: meta.regularMarketTime ?? null,
+    session: sessionOf(meta, Date.now() / 1000),
+    extended,
+    // 장전/장후에는 직전 정규장 종가 대비 등락률
+    changePct: extended ? (price / regularPrice - 1) * 100 : meta.regularMarketChangePercent ?? null,
+    marketTime: priceTime || null,
     rsi: rsiAtPrice(prev, prevClose, price),
     prevWeekRsi: rsiOf(prev),
     prevWeekClose: prevClose,
@@ -54,7 +82,7 @@ export async function analyze(symbol, threshold, withSeries) {
   // 5분봉 가격을 "그 시점의 주봉 종가"로 넣어 주봉 RSI의 장중 움직임을 만든다.
   out.intraday = [];
   let w = 0;
-  for (const bar of await intraday(symbol)) {
+  for (const bar of minutes) {
     while (w + 1 < bars.length && bars[w + 1].t <= bar.t) w++;
     if (w < 1 || !states[w - 1]) continue;
     out.intraday.push({ t: bar.t, v: rsiAtPrice(states[w - 1], closes[w - 1], bar.c), p: bar.c });
@@ -97,7 +125,8 @@ export async function checkAlerts(env) {
           text:
             `📉 ${symbol} 주봉 RSI ${a.rsi.toFixed(1)} — 기준 ${threshold} 이하\n` +
             `현재가 ${usd(a.price)}` +
-            (a.dayChangePct != null ? ` (${a.dayChangePct >= 0 ? "+" : ""}${a.dayChangePct.toFixed(2)}%)` : "") +
+            (a.changePct != null ? ` (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)` : "") +
+            (a.extended ? (a.session === "pre" ? " · 프리마켓" : " · 애프터마켓") : "") +
             `\n지난주 RSI ${a.prevWeekRsi.toFixed(1)}`,
         });
         state[symbol] = { below: true, at: Date.now() };

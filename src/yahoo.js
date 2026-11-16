@@ -3,11 +3,11 @@
 const cache = new Map();
 const TTL_MS = 15_000;
 
-async function chart(symbol, interval, range) {
-  const key = `${symbol}|${interval}|${range}`;
+async function chart(symbol, interval, range, extra = "") {
+  const key = `${symbol}|${interval}|${range}|${extra}`;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.data;
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}${extra}`;
   const res = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; rsi-watch)", Accept: "application/json" },
   });
@@ -45,7 +45,7 @@ export async function weekly(symbol) {
   return { bars: list, meta };
 }
 
-/** 최근 5거래일 5분봉 */
+/** 최근 5거래일 5분봉 (프리마켓·애프터마켓 포함) */
 export async function intraday(symbol) {
-  return bars(await chart(symbol, "5m", "5d"));
+  return bars(await chart(symbol, "5m", "5d", "&includePrePost=true"));
 }
