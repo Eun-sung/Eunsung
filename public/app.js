@@ -123,6 +123,7 @@ function card(s) {
   }
   const below = s.rsi <= s.threshold;
   const gap = s.rsi - s.threshold;
+  const delta = s.rsi - s.prevWeekRsi; // 지난주 마감 RSI 대비 변화
   const view = views.get(s.symbol) || "intraday";
   const chart = svg("svg", { class: "chart", role: "img", "aria-label": `${s.symbol} 주봉 RSI 추이` });
   const render = () => drawChart(chart, views.get(s.symbol) === "weekly" ? s.weekly : s.intraday, s.threshold, views.get(s.symbol) || "intraday");
@@ -149,7 +150,10 @@ function card(s) {
     ),
     el("div", { class: "hero" },
       el("span", { class: "rsi" }, s.rsi.toFixed(2)),
-      el("span", { class: `badge${below ? " below" : ""}` }, below ? `▼ 기준 ${s.threshold} 이하` : `기준 ${s.threshold}까지 ${gap.toFixed(2)}`),
+      el("div", { class: "side" },
+        el("span", { class: `delta ${delta >= 0 ? "up" : "down"}` }, `${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta).toFixed(2)} `, el("small", {}, "지난주 대비")),
+        el("span", { class: `badge${below ? " below" : ""}` }, below ? `기준 ${s.threshold} 이하` : `기준 ${s.threshold}까지 ${gap.toFixed(2)}`),
+      ),
     ),
     el("dl", { class: "facts" },
       el("div", { class: "fact" },
@@ -173,10 +177,12 @@ function renderSummary() {
   const ok = data.symbols.filter((s) => !s.error);
   $("summary").replaceChildren(...ok.map((s) => {
     const below = s.rsi <= s.threshold;
+    const up = s.rsi >= s.prevWeekRsi;
     return el("span", { class: below ? "below" : "" },
       el("span", { class: "s-sym" }, s.symbol),
       el("span", { class: "s-rsi" }, s.rsi.toFixed(2)),
-      el("span", { class: "s-gap" }, below ? `▼ ${s.threshold} 이하` : `기준까지 ${(s.rsi - s.threshold).toFixed(2)}`),
+      el("span", { class: `s-dir ${up ? "up" : "down"}` }, `${up ? "▲" : "▼"}${Math.abs(s.rsi - s.prevWeekRsi).toFixed(2)}`),
+      el("span", { class: "s-gap" }, below ? `${s.threshold} 이하` : `기준까지 ${(s.rsi - s.threshold).toFixed(2)}`),
     );
   }));
   if (ok.length) document.title = ok.map((s) => `${s.symbol} ${s.rsi.toFixed(2)}`).join(" · ");

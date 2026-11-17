@@ -191,7 +191,7 @@ async function handleApi(request, env, path) {
     const items = await Promise.all(
       config.items.map(({ symbol, threshold }) =>
         analyze(symbol, threshold, false, env)
-          .then((a) => ({ symbol, threshold, rsi: Math.round(a.rsi * 100) / 100, price: a.price, session: a.session, below: a.rsi <= threshold, time: a.marketTime }))
+          .then((a) => ({ symbol, threshold, rsi: Math.round(a.rsi * 100) / 100, change: Math.round((a.rsi - a.prevWeekRsi) * 100) / 100, price: a.price, session: a.session, below: a.rsi <= threshold, time: a.marketTime }))
           .catch((err) => ({ symbol, threshold, error: err.message })),
       ),
     );

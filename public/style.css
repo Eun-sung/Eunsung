@@ -65,7 +65,13 @@ h2 { font-size: 15px; margin: 0 0 10px; }
 .price .up { color: var(--up); } .price .down { color: var(--down); }
 .hero { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 4px 12px; margin: 6px 0 2px; }
 .rsi { font-size: clamp(42px, 13vw, 52px); font-weight: 700; line-height: 1; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
-.badge { font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--page); color: var(--text-2); white-space: nowrap; margin-bottom: 6px; }
+.side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-bottom: 4px; }
+.delta { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.delta small { font-size: 11px; font-weight: 500; color: var(--text-3); }
+.delta.up, .s-dir.up { color: var(--up); }
+.delta.down, .s-dir.down { color: var(--down); }
+.summary .s-dir { font-size: 12px; font-weight: 600; margin-left: 4px; }
+.badge { font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--page); color: var(--text-2); white-space: nowrap; }
 .badge.below { background: var(--critical-bg); color: var(--critical); }
 .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 14px; }
 .fact { background: var(--page); border-radius: 10px; padding: 8px 10px; }
