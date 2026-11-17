@@ -167,6 +167,20 @@ function card(s) {
   return node;
 }
 
+// 맨 위 한 줄 요약: 종목별 현재 RSI와 기준까지 남은 거리. 브라우저 탭 제목에도 같은 내용을 넣는다.
+function renderSummary() {
+  const ok = data.symbols.filter((s) => !s.error);
+  $("summary").replaceChildren(...ok.map((s) => {
+    const below = s.rsi <= s.threshold;
+    return el("span", { class: below ? "below" : "" },
+      el("span", { class: "s-sym" }, s.symbol),
+      el("span", { class: "s-rsi" }, s.rsi.toFixed(1)),
+      el("span", { class: "s-gap" }, below ? `▼ ${s.threshold} 이하` : `기준까지 ${(s.rsi - s.threshold).toFixed(1)}`),
+    );
+  }));
+  if (ok.length) document.title = ok.map((s) => `${s.symbol} ${s.rsi.toFixed(1)}`).join(" · ");
+}
+
 function renderCards() {
   const host = $("cards");
   const nodes = data.symbols.map(card);
@@ -182,6 +196,7 @@ async function refresh() {
     const res = await fetch("/api/data");
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
+    renderSummary();
     if (!$("tip").hidden) return; // 차트를 만지는 중이면 다음 주기에 갱신
     renderCards();
     renderSettings(false);

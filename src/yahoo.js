@@ -19,29 +19,38 @@ async function chart(symbol, interval, range, extra = "") {
   return result;
 }
 
-function bars(result) {
+const WEEK = 7 * 86400;
+
+function bars(result, keepLastNull = false) {
   const ts = result.timestamp || [];
   const closes = result.indicators?.quote?.[0]?.close || [];
   const out = [];
   for (let i = 0; i < ts.length; i++) {
     if (typeof closes[i] === "number") out.push({ t: ts[i], c: closes[i] });
+    else if (keepLastNull && i === ts.length - 1) out.push({ t: ts[i], c: null });
   }
   return out;
 }
 
-/** 주봉. 마지막 봉은 진행 중인 이번 주이며 종가 자리에 현재가가 들어간다. */
+/** 주봉. 마지막 봉은 진행 중인 이번 주이며 종가 자리에 정규장 현재가가 들어간다. */
 export async function weekly(symbol) {
   const result = await chart(symbol, "1wk", "5y");
-  const list = bars(result);
+  // 이번 주 봉은 장 마감 뒤 종가가 비어서 오기도 한다. 버리면 지난주 봉을 이번 주로 착각하게 되므로 남겨둔다.
+  const list = bars(result, true);
   // 같은 주에 실시간 봉이 한 번 더 붙어 오는 경우 하나로 합친다.
   while (list.length >= 2 && list[list.length - 1].t - list[list.length - 2].t < 5 * 86400) {
     const live = list.pop();
-    list[list.length - 1].c = live.c;
+    if (live.c != null) list[list.length - 1].c = live.c;
   }
   const meta = result.meta || {};
-  if (list.length && typeof meta.regularMarketPrice === "number") {
-    list[list.length - 1].c = meta.regularMarketPrice;
+  const price = meta.regularMarketPrice;
+  const time = meta.regularMarketTime ?? 0;
+  const last = list[list.length - 1];
+  if (last && typeof price === "number") {
+    if (time >= last.t + WEEK) list.push({ t: last.t + WEEK, c: price }); // 이번 주 봉이 아직 없음
+    else if (time >= last.t) last.c = price; // 마지막 봉이 이번 주
   }
+  if (list.length && list[list.length - 1].c == null) list.pop();
   return { bars: list, meta };
 }
 
