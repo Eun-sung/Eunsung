@@ -139,7 +139,8 @@ function card(s) {
     }, label);
   const toTrigger = s.triggerPrice != null ? (s.triggerPrice / s.price - 1) * 100 : null;
   const dayClass = s.changePct >= 0 ? "up" : "down";
-  const sessionLabel = s.session === "pre" ? "프리마켓" : s.session === "post" ? "애프터마켓" : s.session === "regular" ? null : s.extended ? "애프터마켓 마감" : "장 마감";
+  const sessionLabel = { pre: "프리마켓", post: "애프터마켓", overnight: "주간거래", regular: null }[s.session]
+    ?? (s.source === "kis" ? "주간거래 마감" : s.extended ? "애프터마켓 마감" : "장 마감");
 
   const node = el("article", { class: `card${below ? " below" : ""}` },
     el("div", { class: "top" },
@@ -229,6 +230,10 @@ function renderSettings(force) {
     $("items").replaceChildren(...data.symbols.map((s) => itemRow(s.symbol, s.threshold)));
     itemsDirty = false;
   }
+  const on = data.overnight || {};
+  $("on-state").textContent = !on.configured
+    ? "주간거래 시세: 사용 안 함 (한국투자증권 키 미설정)"
+    : on.error ? `주간거래 시세: 오류 — ${on.error}` : "주간거래 시세: 연결됨 (한국투자증권)";
   const tg = data.telegram;
   $("tg-state").textContent = !tg.hasToken
     ? "상태: 봇 토큰(TELEGRAM_BOT_TOKEN)이 아직 설정되지 않았습니다."

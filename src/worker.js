@@ -1,5 +1,6 @@
 import { wilderStates, rsiOf, rsiAtPrice, priceForRsi } from "./rsi.js";
 import { weekly, intraday } from "./yahoo.js";
+import * as kis from "./kis.js";
 
 const DEFAULT_ITEMS = [
   { symbol: "TQQQ", threshold: 36 },
@@ -24,6 +25,7 @@ async function getConfig(env) {
 }
 
 const WEEK = 7 * 86400;
+const NEW_WEEK_LEAD = 6 * 3600;
 
 function sessionOf(meta, now) {
   const p = meta.currentTradingPeriod;
@@ -34,8 +36,8 @@ function sessionOf(meta, now) {
   return "closed";
 }
 
-/** 한 종목의 현재 주봉 RSI와 차트용 추이를 계산한다. 프리·애프터마켓 가격도 반영한다. */
-export async function analyze(symbol, threshold, withSeries) {
+/** 한 종목의 현재 주봉 RSI와 차트용 추이를 계산한다. 프리·애프터마켓, (설정 시) 주간거래 가격도 반영한다. */
+export async function analyze(symbol, threshold, withSeries, env = {}) {
   const [{ bars, meta }, minutes] = await Promise.all([weekly(symbol), intraday(symbol)]);
   if (!bars.length) throw new Error(`주봉 데이터 없음 (${symbol})`);
 
@@ -43,13 +45,30 @@ export async function analyze(symbol, threshold, withSeries) {
   const regularPrice = meta.regularMarketPrice ?? bars[bars.length - 1].c;
   const regularTime = meta.regularMarketTime ?? 0;
   const tailBar = minutes[minutes.length - 1];
-  const extended = !!tailBar && tailBar.t > regularTime + 60;
-  const price = extended ? tailBar.c : regularPrice;
-  const priceTime = extended ? tailBar.t : regularTime;
+  let extended = !!tailBar && tailBar.t > regularTime + 60;
+  let price = extended ? tailBar.c : regularPrice;
+  let priceTime = extended ? tailBar.t : regularTime;
+  let session = sessionOf(meta, Date.now() / 1000);
+  let source = "yahoo";
+
+  // 프리~애프터마켓이 아닌 시간에는 주간거래 시세 중 더 새로운 것만 이어 붙인다.
+  if (session === "closed") {
+    const newer = (await kis.overnightBars(env, symbol, meta.exchangeName)).filter((b) => b.t > priceTime);
+    if (newer.length) {
+      minutes.push(...newer);
+      const tip = newer[newer.length - 1];
+      price = tip.c;
+      priceTime = tip.t;
+      extended = true;
+      source = "kis";
+      if (Date.now() / 1000 - tip.t < 30 * 60) session = "overnight";
+    }
+  }
 
   // 월요일 장전처럼 새 주가 시작됐는데 주봉이 아직 없으면 이번 주 봉을 만들어 붙인다.
   const lastWeek = bars[bars.length - 1];
-  if (priceTime >= lastWeek.t + WEEK + 3600) bars.push({ t: lastWeek.t + WEEK, c: price });
+  // (주간거래는 뉴욕 일요일 저녁에 새 주가 시작되므로 6시간 여유를 둔다)
+  if (priceTime >= lastWeek.t + WEEK - NEW_WEEK_LEAD) bars.push({ t: lastWeek.t + WEEK, c: price });
   else lastWeek.c = price;
 
   const closes = bars.map((b) => b.c);
@@ -62,8 +81,9 @@ export async function analyze(symbol, threshold, withSeries) {
     symbol,
     threshold,
     price,
-    session: sessionOf(meta, Date.now() / 1000),
+    session,
     extended,
+    source,
     // 장전/장후에는 직전 정규장 종가 대비 등락률
     changePct: extended ? (price / regularPrice - 1) * 100 : meta.regularMarketChangePercent ?? null,
     marketTime: priceTime || null,
@@ -83,7 +103,7 @@ export async function analyze(symbol, threshold, withSeries) {
   out.intraday = [];
   let w = 0;
   for (const bar of minutes) {
-    while (w + 1 < bars.length && bars[w + 1].t <= bar.t) w++;
+    while (w + 1 < bars.length && bars[w + 1].t - NEW_WEEK_LEAD <= bar.t) w++;
     if (w < 1 || !states[w - 1]) continue;
     out.intraday.push({ t: bar.t, v: rsiAtPrice(states[w - 1], closes[w - 1], bar.c), p: bar.c });
   }
@@ -116,7 +136,7 @@ export async function checkAlerts(env) {
   let changed = false;
   for (const { symbol, threshold } of config.items) {
     try {
-      const a = await analyze(symbol, threshold, false);
+      const a = await analyze(symbol, threshold, false, env);
       const wasBelow = !!state[symbol]?.below;
       if (a.rsi <= threshold && !wasBelow) {
         if (!config.chatId) continue; // 연결 전에는 상태를 바꾸지 않아, 연결 후 바로 알림이 간다
@@ -126,7 +146,7 @@ export async function checkAlerts(env) {
             `📉 ${symbol} 주봉 RSI ${a.rsi.toFixed(1)} — 기준 ${threshold} 이하\n` +
             `현재가 ${usd(a.price)}` +
             (a.changePct != null ? ` (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)` : "") +
-            (a.extended ? (a.session === "pre" ? " · 프리마켓" : " · 애프터마켓") : "") +
+            (a.source === "kis" ? " · 주간거래" : a.extended ? (a.session === "pre" ? " · 프리마켓" : " · 애프터마켓") : "") +
             `\n지난주 RSI ${a.prevWeekRsi.toFixed(1)}`,
         });
         state[symbol] = { below: true, at: Date.now() };
@@ -153,12 +173,13 @@ async function handleApi(request, env, path) {
     const config = await getConfig(env);
     const symbols = await Promise.all(
       config.items.map(({ symbol, threshold }) =>
-        analyze(symbol, threshold, true).catch((err) => ({ symbol, threshold, error: err.message })),
+        analyze(symbol, threshold, true, env).catch((err) => ({ symbol, threshold, error: err.message })),
       ),
     );
     return json({
       symbols,
       telegram: { hasToken: !!env.TELEGRAM_BOT_TOKEN, connected: !!config.chatId },
+      overnight: { configured: kis.configured(env), error: kis.status.error },
       writable: !!env.APP_PIN,
       now: Date.now(),
     });
@@ -182,7 +203,7 @@ async function handleApi(request, env, path) {
     if (!items.length || items.length > MAX_ITEMS) return json({ error: `종목은 1~${MAX_ITEMS}개여야 합니다.` }, 400);
     for (const it of items) {
       try {
-        await analyze(it.symbol, it.threshold, false);
+        await analyze(it.symbol, it.threshold, false, env);
       } catch {
         return json({ error: `${it.symbol}: 시세를 찾을 수 없습니다.` }, 400);
       }

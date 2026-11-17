@@ -13,6 +13,8 @@ const env = {
   },
   APP_PIN: process.env.APP_PIN || "1234",
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+  KIS_APP_KEY: process.env.KIS_APP_KEY,
+  KIS_APP_SECRET: process.env.KIS_APP_SECRET,
 };
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml" };
 const root = new URL("../public/", import.meta.url).pathname;

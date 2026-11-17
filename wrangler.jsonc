@@ -5,7 +5,7 @@
   "assets": { "directory": "./public" },
   // id를 비워두면 첫 배포 때 KV 네임스페이스가 자동 생성됩니다.
   "kv_namespaces": [{ "binding": "KV" }],
-  // 미국 프리마켓~애프터마켓(뉴욕 04:00~20:00, 서머타임/표준시 모두 포함)에 5분마다 확인합니다. (UTC 기준)
-  "triggers": { "crons": ["*/5 8-23 * * MON-FRI", "*/5 0-1 * * TUE-SAT"] },
+  // 평일 내내 5분마다 확인합니다: 프리마켓~애프터마켓 + 주간거래(뉴욕 20:00~04:00). (UTC 기준)
+  "triggers": { "crons": ["*/5 * * * MON-FRI", "*/5 0-1 * * SAT"] },
   "observability": { "enabled": true }
 }
