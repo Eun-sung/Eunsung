@@ -50,7 +50,7 @@ body {
 .summary .s-gap { color: var(--text-3); font-size: 12px; margin-left: 4px; }
 .summary .below .s-rsi, .summary .below .s-gap { color: var(--critical); }
 header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 4px 2px 12px; }
-h1 { font-size: 20px; margin: 0; }
+h1 { font-size: 20px; margin: 0; white-space: nowrap; }
 h1 .sub { color: var(--text-3); font-weight: 500; }
 h2 { font-size: 15px; margin: 0 0 10px; }
 .status { font-size: 12px; color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
@@ -58,13 +58,13 @@ h2 { font-size: 15px; margin: 0 0 10px; }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
 .card.below { border-color: var(--critical); }
-.top { display: flex; justify-content: space-between; align-items: baseline; }
+.top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .sym { font-size: 17px; font-weight: 700; }
-.price { font-size: 14px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.price { text-align: right; font-size: 14px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 .price .session { font-size: 11px; font-weight: 600; color: var(--text-2); background: var(--page); border-radius: 6px; padding: 2px 6px; margin-right: 6px; }
 .price .up { color: var(--up); } .price .down { color: var(--down); }
-.hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 6px 0 2px; }
-.rsi { font-size: 52px; font-weight: 700; line-height: 1; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.hero { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 4px 12px; margin: 6px 0 2px; }
+.rsi { font-size: clamp(42px, 13vw, 52px); font-weight: 700; line-height: 1; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
 .badge { font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 999px; background: var(--page); color: var(--text-2); white-space: nowrap; margin-bottom: 6px; }
 .badge.below { background: var(--critical-bg); color: var(--critical); }
 .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 14px; }

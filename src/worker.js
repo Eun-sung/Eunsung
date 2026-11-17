@@ -143,11 +143,11 @@ export async function checkAlerts(env) {
         await telegram(env, "sendMessage", {
           chat_id: config.chatId,
           text:
-            `📉 ${symbol} 주봉 RSI ${a.rsi.toFixed(1)} — 기준 ${threshold} 이하\n` +
+            `📉 ${symbol} 주봉 RSI ${a.rsi.toFixed(2)} — 기준 ${threshold} 이하\n` +
             `현재가 ${usd(a.price)}` +
             (a.changePct != null ? ` (${a.changePct >= 0 ? "+" : ""}${a.changePct.toFixed(2)}%)` : "") +
             (a.source === "kis" ? " · 주간거래" : a.extended ? (a.session === "pre" ? " · 프리마켓" : " · 애프터마켓") : "") +
-            `\n지난주 RSI ${a.prevWeekRsi.toFixed(1)}`,
+            `\n지난주 RSI ${a.prevWeekRsi.toFixed(2)}`,
         });
         state[symbol] = { below: true, at: Date.now() };
         changed = true;

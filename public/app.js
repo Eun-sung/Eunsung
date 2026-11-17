@@ -69,7 +69,7 @@ function drawChart(host, points, threshold, mode) {
   points.forEach((p, i) => {
     const d = new Date(p.t * 1000);
     const key = mode === "intraday" ? etDateKey.format(d) : etDateKey.format(d).slice(0, 7);
-    if (key !== prevKey && (mode === "intraday" || prevKey !== null) && x(i) - lastLabelX > 34 && x(i) < W - m.r - 16) {
+    if (key !== prevKey && (mode === "intraday" || prevKey !== null) && x(i) - lastLabelX > (mode === "intraday" ? 66 : 34) && x(i) < W - m.r - 16) {
       host.append(svg("text", { x: x(i), y: H - 5 }, mode === "intraday" ? `${etDay.format(d)} ${d && etDate.format(d).replace(/\s/g, "")}` : etMonth.format(d)));
       lastLabelX = x(i);
     }
@@ -80,7 +80,7 @@ function drawChart(host, points, threshold, mode) {
   host.append(svg("line", { class: "thr", x1: m.l, x2: W - m.r, y1: y(threshold), y2: y(threshold) }));
   host.append(svg("text", { class: "thr-label", x: W - m.r + 6, y: y(threshold) + 4 }, String(threshold)));
 
-  host.append(svg("path", { class: "line", d: points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join("") }));
+  host.append(svg("path", { class: "line", d: points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(2)},${y(p.v).toFixed(2)}`).join("") }));
   const last = points.length - 1;
   const cross = svg("line", { class: "cross", y1: m.t, y2: H - m.b, visibility: "hidden" });
   const dot = svg("circle", { class: "dot", r: 4.5, cx: x(last), cy: y(points[last].v) });
@@ -99,7 +99,7 @@ function drawChart(host, points, threshold, mode) {
     dot.setAttribute("cx", x(i));
     dot.setAttribute("cy", y(p.v));
     const when = mode === "intraday" ? kstTime.format(new Date(p.t * 1000)) : `${etDate.format(new Date(p.t * 1000))} 주`;
-    tip.replaceChildren(el("b", {}, `RSI ${p.v.toFixed(1)}`), el("br"), `${usd(p.p)} · ${when}`);
+    tip.replaceChildren(el("b", {}, `RSI ${p.v.toFixed(2)}`), el("br"), `${usd(p.p)} · ${when}`);
     tip.hidden = false;
     const tw = tip.offsetWidth;
     tip.style.left = `${Math.max(8, Math.min(window.innerWidth - tw - 8, box.left + x(i) - tw / 2))}px`;
@@ -148,8 +148,8 @@ function card(s) {
       el("span", { class: "price" }, sessionLabel ? el("span", { class: "session" }, sessionLabel) : null, `${usd(s.price)} `, s.changePct != null ? el("span", { class: dayClass }, pct(s.changePct)) : null),
     ),
     el("div", { class: "hero" },
-      el("span", { class: "rsi" }, s.rsi.toFixed(1)),
-      el("span", { class: `badge${below ? " below" : ""}` }, below ? `▼ 기준 ${s.threshold} 이하` : `기준 ${s.threshold}까지 ${gap.toFixed(1)}`),
+      el("span", { class: "rsi" }, s.rsi.toFixed(2)),
+      el("span", { class: `badge${below ? " below" : ""}` }, below ? `▼ 기준 ${s.threshold} 이하` : `기준 ${s.threshold}까지 ${gap.toFixed(2)}`),
     ),
     el("dl", { class: "facts" },
       el("div", { class: "fact" },
@@ -158,7 +158,7 @@ function card(s) {
       ),
       el("div", { class: "fact" },
         el("dt", {}, "지난주 마감 RSI"),
-        el("dd", {}, `${s.prevWeekRsi.toFixed(1)} `, el("small", {}, usd(s.prevWeekClose))),
+        el("dd", {}, `${s.prevWeekRsi.toFixed(2)} `, el("small", {}, usd(s.prevWeekClose))),
       ),
     ),
     el("div", { class: "tabs", role: "group", "aria-label": "차트 기간" }, tab("intraday", "최근 5일"), tab("weekly", "1년")),
@@ -175,11 +175,11 @@ function renderSummary() {
     const below = s.rsi <= s.threshold;
     return el("span", { class: below ? "below" : "" },
       el("span", { class: "s-sym" }, s.symbol),
-      el("span", { class: "s-rsi" }, s.rsi.toFixed(1)),
-      el("span", { class: "s-gap" }, below ? `▼ ${s.threshold} 이하` : `기준까지 ${(s.rsi - s.threshold).toFixed(1)}`),
+      el("span", { class: "s-rsi" }, s.rsi.toFixed(2)),
+      el("span", { class: "s-gap" }, below ? `▼ ${s.threshold} 이하` : `기준까지 ${(s.rsi - s.threshold).toFixed(2)}`),
     );
   }));
-  if (ok.length) document.title = ok.map((s) => `${s.symbol} ${s.rsi.toFixed(1)}`).join(" · ");
+  if (ok.length) document.title = ok.map((s) => `${s.symbol} ${s.rsi.toFixed(2)}`).join(" · ");
 }
 
 function renderCards() {
